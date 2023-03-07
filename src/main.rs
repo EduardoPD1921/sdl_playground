@@ -4,40 +4,59 @@ use error::SDLError;
 use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use sdl2::rect::{Rect, Point};
 
-use std::time::Duration;
 use std::process::exit;
+use std::time::Duration;
 
 fn main() {
     let sdl_context = get_sdl_context();
     let video_subsystem = get_video_subsystem(&sdl_context);
     let window = get_window(video_subsystem);
     let mut canvas = get_canvas(window);
-
-    canvas.set_draw_color(Color::RGB(0, 255, 255));
-    canvas.clear();
-    canvas.present();
-
     let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut i = 0;
 
     'eventloop: loop {
-        i = (i + 1) % 255;
-        canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
-        canvas.clear();
-
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit {..} |
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'eventloop;
-                }
+                },
                 _ => println!("{:?}", event)
             }
         }
 
+        let mouse_state = event_pump.mouse_state();
+
+        canvas.set_draw_color(Color::RGB(0, 0, 0));
+        canvas.clear();
+
+        canvas.set_draw_color(Color::RGB(255, 0, 0));
+        canvas.draw_circle(mouse_state.x(), mouse_state.y(), 200);
+
         canvas.present();
-        std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+        std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 144));
+    }
+}
+
+trait Circle {
+    fn draw_circle(&mut self, cx: i32, cy: i32, r: i32);
+}
+
+impl Circle for sdl2::render::Canvas<sdl2::video::Window> {
+    // this function implements the basic equation of a circle -> (x - cx)2 + (y - cy)2 = r2
+    fn draw_circle(&mut self, cx: i32, cy: i32, r:i32) {
+        for x in (cx - r)..=(cx + r) {
+            let y = ((r as f64).powf(2.0) - ((x - cx) as f64).powf(2.0)).sqrt() as i32 + cy;
+            self.draw_point(Point::new(x, y)).unwrap();
+            self.draw_point(Point::new(x, 2 * cy - y)).unwrap();
+        }
+        for y in (cy - r)..=(cy + r) {
+            let x = ((r as f64).powf(2.0) - ((y - cy) as f64).powf(2.0)).sqrt() as i32 + cx;
+            self.draw_point(Point::new(x, y)).unwrap();
+            self.draw_point(Point::new(2 * cx - x, y)).unwrap();
+        }
     }
 }
 
