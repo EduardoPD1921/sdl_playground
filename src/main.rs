@@ -4,10 +4,10 @@ use error::SDLError;
 use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::rect::{Rect, Point};
+use sdl2::rect::Point;
 
 use std::process::exit;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 fn main() {
     let sdl_context = get_sdl_context();
@@ -16,14 +16,19 @@ fn main() {
     let mut canvas = get_canvas(window);
     let mut event_pump = sdl_context.event_pump().unwrap();
 
+    let mut fps_timer = Instant::now();
+    let mut frame_counter = 0;
+
     'eventloop: loop {
+        frame_counter += 1;
+
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit {..} |
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'eventloop;
                 },
-                _ => println!("{:?}", event)
+                _ => {}
             }
         }
 
@@ -36,7 +41,12 @@ fn main() {
         canvas.draw_circle(mouse_state.x(), mouse_state.y(), 200);
 
         canvas.present();
-        std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 144));
+
+        if fps_timer.elapsed() >= Duration::from_secs(1) {
+            println!("FPS: {frame_counter}");
+            frame_counter = 0;
+            fps_timer = Instant::now();
+        }
     }
 }
 
@@ -88,7 +98,7 @@ fn get_window(video_subsystem: sdl2::VideoSubsystem) -> sdl2::video::Window {
 }
 
 fn get_canvas(window: sdl2::video::Window) -> sdl2::render::Canvas<sdl2::video::Window> {
-    if let Ok(canvas) = window.into_canvas().present_vsync().build() {
+    if let Ok(canvas) = window.into_canvas().build() {
         canvas
     } else {
         eprintln!("{}", SDLError::BuildCanvas);
