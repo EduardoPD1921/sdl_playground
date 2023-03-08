@@ -16,6 +16,8 @@ fn main() {
     let mut canvas = get_canvas(window);
     let mut event_pump = sdl_context.event_pump().unwrap();
 
+    let mut circle_radius = 200;
+
     let mut fps_timer = Instant::now();
     let mut frame_counter = 0;
 
@@ -28,6 +30,9 @@ fn main() {
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'eventloop;
                 },
+                Event::MouseWheel { y, .. } => {
+                    circle_radius += y * 5;
+                },
                 _ => {}
             }
         }
@@ -38,7 +43,7 @@ fn main() {
         canvas.clear();
 
         canvas.set_draw_color(Color::RGB(255, 0, 0));
-        canvas.draw_circle(mouse_state.x(), mouse_state.y(), 200);
+        canvas.draw_circle(mouse_state.x(), mouse_state.y(), circle_radius);
 
         canvas.present();
 
@@ -56,13 +61,13 @@ trait Circle {
 
 impl Circle for sdl2::render::Canvas<sdl2::video::Window> {
     // this function implements the basic equation of a circle -> (x - cx)2 + (y - cy)2 = r2
-    fn draw_circle(&mut self, cx: i32, cy: i32, r:i32) {
-        for x in (cx - r)..=(cx + r) {
+    fn draw_circle(&mut self, cx: i32, cy: i32, r: i32) {
+        for x in (cx - r)..(cx + r) {
             let y = ((r as f64).powf(2.0) - ((x - cx) as f64).powf(2.0)).sqrt() as i32 + cy;
             self.draw_point(Point::new(x, y)).unwrap();
             self.draw_point(Point::new(x, 2 * cy - y)).unwrap();
         }
-        for y in (cy - r)..=(cy + r) {
+        for y in (cy - r)..(cy + r) {
             let x = ((r as f64).powf(2.0) - ((y - cy) as f64).powf(2.0)).sqrt() as i32 + cx;
             self.draw_point(Point::new(x, y)).unwrap();
             self.draw_point(Point::new(2 * cx - x, y)).unwrap();
